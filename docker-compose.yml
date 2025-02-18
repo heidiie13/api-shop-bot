@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend_database:
+    image: postgres:latest
+    container_name: sales-chatbot-backend-postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:500"
+    volumes:
+      - sales_chatbot_backend_data:/var/lib/postgresql/data
+    networks:
+      - sales-chatbot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sales-chatbot-network:
+    driver: bridge
+
+volumes:
+  sales_chatbot_backend_data:
+    driver: local
