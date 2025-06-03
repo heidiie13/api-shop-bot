@@ -13,13 +13,13 @@ DB_PORT = os.getenv('DB_PORT')
 
 def get_db_connection():
     """
-    Tạo kết nối với database PostgreSQL
+    Connect to PostgreSQL database
     
     Returns:
-        Connection: Kết nối với database PostgreSQL
+        Connection: Connection to PostgreSQL database
     
     Raises:
-        Exception: Nếu không thể kết nối đến database
+        Exception: If connection to database fails
     """
     try:
         conn = psycopg.connect(
@@ -36,13 +36,13 @@ def get_db_connection():
     
 def init_product_table():
     """
-    Khởi tạo bảng product trong db nếu chưa tồn tại
-    Bảng product:
-    - Tên sản phẩm
-    - Mô tả
-    - Giá
-    - Số lượng tồn kho
-    - Thông số kỹ thuật
+    Initialize product table in database if not exists
+    Product table:
+    - Product name
+    - Description
+    - Price
+    - Stock
+    - Specifications
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -62,13 +62,13 @@ def init_product_table():
         
 def get_product_by_name(name: str) -> dict | None:
     """
-    Truy vấn product bằng tên
+    Query product by name
 
     Args:
-        name (str): Tên sản phẩm cần tìm
+        name (str): The name of the product to search for
 
     Returns:
-        dict | None: Thông tin sản phẩm nếu có, None nếu không tìm thấy
+        dict | None: Product information if found, None if not found
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -92,14 +92,14 @@ def get_product_by_name(name: str) -> dict | None:
 
 def check_product_stock(product_id: int, quantity: int) -> bool:
     """
-    Kiểm tra số lượng tồn kho của sản phẩm
+    Check the stock of a product
 
     Args:
-        product_id (int): ID sản phẩm
-        quantity (int): Số lượng cần kiểm tra
+        product_id (int): ID of the product
+        quantity (int): The quantity to check
 
     Returns:
-        bool: True nếu số lượng tồn kho >= số lượng cần kiểm tra, False nếu không đủ
+        bool: True if the stock is >= the quantity to check, False if not enough
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -116,14 +116,14 @@ def check_product_stock(product_id: int, quantity: int) -> bool:
         
 def update_product_stock(product_id: int, quantity: int):
     """
-    Cập nhật số lượng tồn kho của sản phẩm
+    Update the stock of a product
 
     Args:
-        product_id (int): ID sản phẩm
-        quantity (int): Số lượng cần cập nhật (số âm để thêm số lượng tồn kho)
+        product_id (int): ID of the product
+        quantity (int): The quantity to update (negative to add to stock)
     
     Returns:
-        bool: True nếu cập nhật thành công, False nếu thất bại
+        bool: True if update is successful, False if fails
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:

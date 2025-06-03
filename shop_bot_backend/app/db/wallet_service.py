@@ -7,11 +7,11 @@ from decimal import Decimal
 
 def init_wallet_table():
     """
-    Khởi tạo bảng user_wallet trong database nếu chưa tồn tại
-    Bảng này lưu trữ thông tin về ví tiền của người dùng bao gồm:
-    - ID người dùng
-    - Số dư
-    - Thời gian tạo và cập nhật
+    Initialize user_wallet table in database if not exists
+    This table stores information about user's wallet, including:
+    - User ID
+    - Balance
+    - Created and updated time
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:

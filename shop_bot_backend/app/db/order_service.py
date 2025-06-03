@@ -7,13 +7,13 @@ from decimal import Decimal
 
 def init_order_table():
     """
-    Khởi tạo bảng order trong database nếu chưa tồn tại
-    Bảng này lưu trữ thông tin về các đơn hàng bao gồm:
-    - ID người dùng
-    - ID sản phẩm
-    - Số lượng
-    - Tổng tiền
-    - Trạng thái đơn hàng
+    Initialize order table in database if not exists
+    This table stores information about orders, including:
+    - User ID
+    - Product ID
+    - Quantity
+    - Total amount
+    - Status
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -34,16 +34,16 @@ def init_order_table():
 
 def create_order(user_id: str, product_id: int, quantity: int, total_amount: Decimal) -> dict | None:
     """
-    Tạo đơn hàng mới
+    Create a new order
 
     Args:
-        user_id (str): ID của người dùng
-        product_id (int): ID của sản phẩm
-        quantity (int): Số lượng sản phẩm
-        total_amount (Decimal): Tổng tiền đơn hàng
+        user_id (str): ID of the user
+        product_id (int): ID of the product
+        quantity (int): Quantity of the product
+        total_amount (Decimal): Total amount of the order
 
     Returns:
-        dict | None: Thông tin đơn hàng nếu tạo thành công, None nếu thất bại
+        dict | None: Order information if creation is successful, None if failed
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -70,14 +70,14 @@ def create_order(user_id: str, product_id: int, quantity: int, total_amount: Dec
 
 def update_order_status(order_id: int, status: str) -> dict | None:
     """
-    Cập nhật trạng thái đơn hàng
+    Update the status of an order
 
     Args:
-        order_id (int): ID của đơn hàng
-        status (str): Trạng thái mới (pending, confirmed, paid, cancelled)
+        order_id (int): The ID of the order
+        status (str): The new status (pending, confirmed, paid, cancelled)
 
     Returns:
-        dict | None: Thông tin đơn hàng sau khi cập nhật, None nếu thất bại
+        dict | None: Order information after update, None if failed
     """
     with get_db_connection() as conn:
         with conn.cursor() as cur:

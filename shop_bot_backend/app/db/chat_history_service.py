@@ -1,107 +1,107 @@
 import sys, os
+import logging
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
 from app.db.product_service import get_db_connection
+
+logger = logging.getLogger(__name__)
+
 def init_chat_history_table():
     """
-    Khởi tạo bảng message trong database nếu chưa tồn tại
-    Bảng này lưu trữ lịch sử chat bao gồm:
-    - ID tin nhắn (UUID)
-    - ID cuộc trò chuyện
-    - Câu hỏi
-    - Câu trả lời
-    - Thời gian tạo
+    Initialize the message table in the database if it does not exist.
+    This table stores chat history including:
+    - Message ID (UUID)
+    - Conversation ID
+    - Question
+    - Answer
+    - Creation time
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
-            
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS message (
-                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                    thread_id VARCHAR(255) NOT NULL,
-                    question TEXT NOT NULL,
-                    answer TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_message_thread_id 
-                ON message(thread_id)
-            """)
-        conn.commit()
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
+                
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS message (
+                        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                        thread_id VARCHAR(255) NOT NULL,
+                        question TEXT NOT NULL,
+                        answer TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_message_thread_id 
+                    ON message(thread_id)
+                """)
+            conn.commit()
+            logger.info("Chat history table initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing chat history table: {e}")
+        raise
 
 def save_chat_history(thread_id: str, question: str, answer: str) -> dict:
     """
-    Lưu lịch sử chat vào database
+    Save chat history to database
     
     Args:
-        thread_id (str): ID của cuộc trò chuyện
-        question (str): Câu hỏi của người dùng
-        answer (str): Câu trả lời của chatbot
+        thread_id (str): ID of the conversation
+        question (str): User's question
+        answer (str): Chatbot's answer
         
     Returns:
-        dict: Thông tin lịch sử chat vừa được lưu
+        dict: Information about the saved chat history
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO message (thread_id, question, answer) VALUES (%s, %s, %s) RETURNING id::text",
-                (thread_id, question, answer)
-            )
-            result = cur.fetchone()
-        conn.commit()
-        return result['id']
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO message (thread_id, question, answer) VALUES (%s, %s, %s) RETURNING id::text",
+                    (thread_id, question, answer)
+                )
+                result = cur.fetchone()
+            conn.commit()
+            return result['id']
+    except Exception as e:
+        logger.error(f"Error saving chat history: {e}")
+        raise
 
 def get_recent_chat_history(thread_id: str, limit: int = 10) -> list[dict]:
     """
-    Lấy lịch sử chat gần đây của một cuộc trò chuyện
+    Retrieve recent chat history for a conversation
     
     Args:
-        thread_id (str): ID của cuộc trò chuyện
-        limit (int): Số lượng tin nhắn tối đa cần lấy, mặc định là 10
+        thread_id (str): ID of the conversation
+        limit (int): Maximum number of messages to retrieve, default is 10
         
     Returns:
-        list[dict]: Danh sách các tin nhắn gần đây
+        list[dict]: List of recent messages
     """
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT 
-                    id::text,
-                    thread_id,
-                    question,
-                    answer,
-                    created_at
-                FROM message 
-                WHERE thread_id = %s 
-                ORDER BY created_at DESC 
-                LIMIT %s
-                """,
-                (thread_id, limit)
-            )
-            return cur.fetchall()
-
-def format_chat_history(chat_history: list[dict]) -> str:
-    """
-    Định dạng lịch sử chat thành chuỗi văn bản
-    
-    Args:
-        chat_history (list[dict]): Danh sách các tin nhắn
-        
-    Returns:
-        str: Chuỗi văn bản đã được định dạng
-    """
-    formatted_history = []
-    for msg in reversed(chat_history):
-        formatted_history.extend([
-            {"role": "human", "content": msg["question"]},
-            {"role": "assistant", "content": msg["answer"]}
-        ])
-    return formatted_history
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT 
+                        id::text,
+                        thread_id,
+                        question,
+                        answer,
+                        created_at
+                    FROM message 
+                    WHERE thread_id = %s 
+                    ORDER BY created_at DESC 
+                    LIMIT %s
+                    """,
+                    (thread_id, limit)
+                )
+                return cur.fetchall() or []
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}")
+        return []
 
 def main():
     init_chat_history_table() 

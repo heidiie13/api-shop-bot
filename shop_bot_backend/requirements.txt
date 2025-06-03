@@ -1,6 +1,7 @@
 langchain
-langchain-openai
+langchain-google-genai
 langchain-community
+langchain-core
 psycopg[binary]
 pydantic
 python-dotenv

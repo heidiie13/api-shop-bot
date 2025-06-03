@@ -1,5 +1,3 @@
-
-
 import sys, os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
@@ -8,42 +6,33 @@ from typing import AsyncGenerator
 from dotenv import load_dotenv
 from app.core_ai.tools import ProductSearchTool, CreateOrderTool, UpdateOrderStatusTool
 from app.core_ai.prompts import system_prompt
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.callbacks.base import BaseCallbackHandler
 
-from app.db.chat_history_service import get_recent_chat_history, save_chat_history, format_chat_history
-import certifi, ssl, httpx
-os.environ["SSL_CERT_FILE"] = certifi.where()
+from app.db.chat_history_service import get_recent_chat_history, save_chat_history
+
 load_dotenv(override=True)
 
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+MODEL_NAME = os.getenv("GOOGLE_MODEL_NAME", "gemini-pro")
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
-
-
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY not found in environment variables")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY not found in environment variables")
 
 product_search_tool = ProductSearchTool()
 create_order_tool = CreateOrderTool()
 update_order_status_tool = UpdateOrderStatusTool()
 
 def get_llm_and_agent() -> AgentExecutor:
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    http_client = httpx.Client(verify=ssl_context)
-    
-    chat = ChatOpenAI(
-        model=MODEL_NAME, 
-        api_key=OPENAI_API_KEY,
-        base_url=OPENAI_BASE_URL,
-        temperature=0, 
-        streaming=True, 
-        http_client= http_client,
-        callbacks=[BaseCallbackHandler()]
-        )
+    chat = ChatGoogleGenerativeAI(
+        model=MODEL_NAME,
+        google_api_key=GOOGLE_API_KEY,
+        temperature=0,
+        # convert_system_message_to_human=True,
+        # streaming=True
+    )
     
     tools = [
         product_search_tool,
@@ -67,22 +56,32 @@ def get_llm_and_agent() -> AgentExecutor:
     agent_executor = AgentExecutor(
         agent=agent,
         tools=tools,
-        verbose=False,
+        verbose=True,
         return_intermediate_steps=True
     )
 
     return agent_executor
 
+def format_chat_history(history: list) -> list:
+    """Format chat history into a list of message tuples"""
+    formatted_history = []
+    for msg in reversed(history):
+        formatted_history.extend([
+            ("human", msg["question"]),
+            ("assistant", msg["answer"])
+        ])
+    return formatted_history
+
 def get_answer(question: str, thread_id: str) -> dict:
     """
-    Hàm lấy câu trả lời cho một câu hỏi
+    Get answer for a question
     
     Args:
-        question (str): Câu hỏi của người dùng
-        thread_id (str): ID của cuộc trò chuyện
+        question (str): Question from user
+        thread_id (str): ID of the conversation
         
     Returns:
-        dict: Câu trả lời từ AI
+        dict: Answer from AI
     """
     agent = get_llm_and_agent()
     
@@ -101,14 +100,14 @@ def get_answer(question: str, thread_id: str) -> dict:
 
 async def get_answer_stream(question: str, thread_id: str) -> AsyncGenerator[str, None]:
     """
-    Hàm lấy câu trả lời dạng stream cho một câu hỏi
+    Get answer for a question in stream format
     
     Args:
-        question (str): Câu hỏi của người dùng
-        thread_id (str): ID phiên chat
+        question (str): Question from user
+        thread_id (str): ID of the conversation
         
     Returns:
-        AsyncGenerator[str, None]: Generator trả về từng phần của câu trả lời
+        AsyncGenerator[str, None]: Generator that yields each part of the answer
     """
     agent = get_llm_and_agent()
     
@@ -138,9 +137,7 @@ if __name__ == "__main__":
     import asyncio
     
     async def test():
-        async for event in get_answer_stream("Tôi là user_2, tôi xác nhận đã thanh toán rồi,order_id là 2", "test-session-100"):
+        async for event in get_answer_stream("tôi muốn mua 1 cái Xiaomi 14 Pro", "3"):
             print(event)
-        print('done')
-
     
     asyncio.run(test())

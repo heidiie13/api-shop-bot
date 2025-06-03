@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:500"
+      - "${DB_PORT}:5432"
     volumes:
       - sales_chatbot_backend_data:/var/lib/postgresql/data
     networks:

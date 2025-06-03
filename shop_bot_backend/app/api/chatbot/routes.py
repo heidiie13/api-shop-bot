@@ -36,10 +36,12 @@ async def chat(request: ChatRequest):
         return ChatResponse(answer=result["output"])
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Internal server error: {str(e)}"
-        )
+        # Return a more user-friendly error message
+        return {
+            "error": "Internal server error",
+            "details": str(e),
+            "status": 500
+        }
 
 async def event_generator(question: str, thread_id: str) -> AsyncGenerator[str, None]:
     try:
@@ -55,4 +57,4 @@ async def chat_stream(request: ChatRequest):
     return StreamingResponse(
         event_generator(request.question, request.thread_id),
         media_type="text/event-stream"
-    ) 
+    )
